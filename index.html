@@ -13,20 +13,15 @@
     --accent-soft: #f0d9c8;
     --mono-bg: #fbf9f3;
 
-    --cat-source: #2f7d6b;
-    --cat-source-bg: #dcefe9;
-    --cat-transform: #6b4fa0;
-    --cat-transform-bg: #e6ddf3;
-    --cat-filter: #b8862e;
-    --cat-filter-bg: #f3e8cf;
-    --cat-merge: #3f5568;
-    --cat-merge-bg: #dbe4ea;
-    --cat-output: #a63b52;
-    --cat-output-bg: #f4dde1;
-    --cat-entry: #2b5f8a;
-    --cat-entry-bg: #dce8f0;
-    --cat-other: #857d6c;
-    --cat-other-bg: #eae6d9;
+    /* Category fills are deliberately theme-invariant: they're solid, high-contrast chips
+       meant to read the same in light and dark mode, not text-on-neutral tokens. */
+    --cat-source: #1f8f73;
+    --cat-transform: #7c5cc9;
+    --cat-filter: #a8721f;
+    --cat-merge: #3f6a8a;
+    --cat-output: #c9455f;
+    --cat-entry: #2f6fa8;
+    --cat-other: #7d7566;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -39,21 +34,6 @@
       --accent: #e08a4f;
       --accent-soft: #4a3222;
       --mono-bg: #100f0c;
-
-      --cat-source: #5fbfa3;
-      --cat-source-bg: #1c3831;
-      --cat-transform: #b09be0;
-      --cat-transform-bg: #332a4d;
-      --cat-filter: #e0b45f;
-      --cat-filter-bg: #443619;
-      --cat-merge: #8fb0c7;
-      --cat-merge-bg: #22323c;
-      --cat-output: #e08a99;
-      --cat-output-bg: #452229;
-      --cat-entry: #7fb0d9;
-      --cat-entry-bg: #1f3446;
-      --cat-other: #ada58e;
-      --cat-other-bg: #2e2c22;
     }
   }
   :root[data-theme="dark"] {
@@ -66,21 +46,6 @@
     --accent: #e08a4f;
     --accent-soft: #4a3222;
     --mono-bg: #100f0c;
-
-    --cat-source: #5fbfa3;
-    --cat-source-bg: #1c3831;
-    --cat-transform: #b09be0;
-    --cat-transform-bg: #332a4d;
-    --cat-filter: #e0b45f;
-    --cat-filter-bg: #443619;
-    --cat-merge: #8fb0c7;
-    --cat-merge-bg: #22323c;
-    --cat-output: #e08a99;
-    --cat-output-bg: #452229;
-    --cat-entry: #7fb0d9;
-    --cat-entry-bg: #1f3446;
-    --cat-other: #ada58e;
-    --cat-other-bg: #2e2c22;
   }
 
   * { box-sizing: border-box; }
@@ -196,6 +161,12 @@
   .big-drop-zone:hover .big-drop-title, .big-drop-zone.dragover .big-drop-title { color: var(--accent); }
   .big-drop-zone .big-drop-sub { font-size: 12.5px; }
 
+  .canvas-outer {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 0;
+  }
   .canvas-wrap {
     flex: 1;
     overflow: auto;
@@ -213,32 +184,33 @@
     position: absolute;
     width: 176px;
     border-radius: 8px;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
+    border: 1.5px solid transparent;
     padding: 9px 11px;
     cursor: grab;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    transition: box-shadow 0.12s, border-color 0.12s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+    transition: box-shadow 0.12s, outline-color 0.12s;
     user-select: none;
   }
   .node:active { cursor: grabbing; }
-  .node:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); transform: translateY(-1px); }
-  .node.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .node .cat-pill {
-    display: inline-block;
+  .node:hover { box-shadow: 0 5px 16px rgba(0,0,0,0.3); transform: translateY(-1px); }
+  .node.selected { outline: 2.5px solid var(--accent); outline-offset: 1.5px; box-shadow: 0 0 0 4px var(--accent-soft); }
+  .node .cat-label {
+    display: block;
     font-family: "IBM Plex Mono", monospace;
     font-size: 9.5px;
-    letter-spacing: 0.02em;
-    padding: 1.5px 6px;
-    border-radius: 4px;
-    margin-bottom: 5px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 0.8;
+    margin-bottom: 4px;
   }
   .node .step-name {
-    font-size: 13px; font-weight: 600; color: var(--text);
+    font-size: 13px; font-weight: 600; color: #fff;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .node .step-type {
-    font-size: 10.5px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px; color: #fff; opacity: 0.75; font-family: "IBM Plex Mono", monospace;
     margin-top: 2px;
   }
 
@@ -274,6 +246,15 @@
   .detail-panel h3 { font-size: 16px; font-weight: 600; }
   .detail-panel .dp-close { cursor: pointer; color: var(--text-dim); font-size: 18px; line-height: 1; padding: 2px; }
   .detail-panel .dp-close:hover { color: var(--accent); }
+  .cat-pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    padding: 2.5px 8px;
+    border-radius: 5px;
+    color: #fff;
+  }
   .detail-panel .cat-pill { margin: 6px 0 16px; }
   .detail-panel .kv-list { display: flex; flex-direction: column; gap: 9px; }
   .detail-panel .kv-row { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
@@ -415,8 +396,10 @@
       </label>
     </div>
 
-    <div class="canvas-wrap" id="canvasWrap" style="display:none;">
-      <div class="canvas" id="canvas"></div>
+    <div class="canvas-outer" id="canvasOuter" style="display:none;">
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="canvas" id="canvas"></div>
+      </div>
       <div class="zoom-controls">
         <button id="zoomIn" title="放大">+</button>
         <button id="zoomOut" title="縮小">−</button>
@@ -470,18 +453,18 @@
 
   // ---------- category classification ----------
   var CATS = {
-    source: { label: "Source", color: "--cat-source", bg: "--cat-source-bg",
+    source: { label: "Source", color: "--cat-source",
       types: ["TableInput","TextFileInput","CsvInput","GetXMLData","JsonInput","ExcelInput","MongoDbInput"] },
-    transform: { label: "Transform", color: "--cat-transform", bg: "--cat-transform-bg",
+    transform: { label: "Transform", color: "--cat-transform",
       types: ["SelectValues","ScriptValueMod","Calculator","ValueMapper","StreamLookup","DatabaseLookup",
               "MemoryGroupBy","GroupBy","MergeJoin","JoinRows","Denormaliser","RowNormaliser","AddSequence",
               "Formula","StringOperations","JavaScriptMod"] },
-    filter: { label: "Filter/Sort", color: "--cat-filter", bg: "--cat-filter-bg",
+    filter: { label: "Filter/Sort", color: "--cat-filter",
       types: ["FilterRows","SortRows","RowsFromResult","UniqueRows","Sample"] },
-    merge: { label: "Merge", color: "--cat-merge", bg: "--cat-merge-bg", types: ["Dummy","DummyTrans","MergeRows"] },
-    output: { label: "Output", color: "--cat-output", bg: "--cat-output-bg",
+    merge: { label: "Merge", color: "--cat-merge", types: ["Dummy","DummyTrans","MergeRows"] },
+    output: { label: "Output", color: "--cat-output",
       types: ["TableOutput","TextFileOutput","XMLOutput","JsonOutput","ExcelOutput","InsertUpdate","Update","Delete"] },
-    entry: { label: "Job Entry", color: "--cat-entry", bg: "--cat-entry-bg",
+    entry: { label: "Job Entry", color: "--cat-entry",
       types: ["TRANS","JOB","SHELL","SQL","MAIL","SPECIAL","FILE_EXISTS","EVAL","START"] }
   };
   function classify(type) {
@@ -491,7 +474,7 @@
     return "other";
   }
   function catMeta(key) {
-    if (key === "other") return { label: "Other", color: "--cat-other", bg: "--cat-other-bg" };
+    if (key === "other") return { label: "Other", color: "--cat-other" };
     return CATS[key];
   }
 
@@ -738,6 +721,7 @@
   var tabsEl = document.getElementById("tabs");
   var tabsRowEl = document.getElementById("tabsRow");
   var emptyEl = document.getElementById("emptyState");
+  var canvasOuterEl = document.getElementById("canvasOuter");
   var canvasWrapEl = document.getElementById("canvasWrap");
   var canvasEl = document.getElementById("canvas");
   var detailEl = document.getElementById("detailPanel");
@@ -801,12 +785,12 @@
     var active = state.files[state.activeIdx];
     if (!active) {
       emptyEl.style.display = "flex";
-      canvasWrapEl.style.display = "none";
+      canvasOuterEl.style.display = "none";
       detailEl.classList.remove("open");
       return;
     }
     emptyEl.style.display = "none";
-    canvasWrapEl.style.display = "block";
+    canvasOuterEl.style.display = "flex";
 
     var model = active.model;
     var pos = ensureLayout(active);
@@ -843,8 +827,10 @@
       div.className = "node" + (state.selectedNode === n ? " selected" : "");
       div.style.left = p.x + "px";
       div.style.top = p.y + "px";
+      div.style.background = "var(" + meta.color + ")";
+      div.style.borderColor = "var(" + meta.color + ")";
       div.innerHTML =
-        '<span class="cat-pill" style="color:var(' + meta.color + ');background:var(' + meta.bg + ')">' + meta.label + '</span>' +
+        '<span class="cat-label">' + meta.label + '</span>' +
         '<div class="step-name" title="' + escapeHtml(n.id) + '">' + escapeHtml(n.id) + '</div>' +
         '<div class="step-type">' + escapeHtml(n.type) + '</div>';
       div.addEventListener("mousedown", function(ev){
@@ -926,8 +912,7 @@
     var meta = catMeta(n.cat);
     var pill = document.getElementById("dpCatPill");
     pill.textContent = meta.label + " · " + n.type;
-    pill.style.color = "var(" + meta.color + ")";
-    pill.style.background = "var(" + meta.bg + ")";
+    pill.style.background = "var(" + meta.color + ")";
 
     var summary = summarizeNode(n.el);
     var body = document.getElementById("dpBody");
