@@ -1,0 +1,962 @@
+<title>Kettle Flow Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --surface-2: #ece8de;
+    --border: #ddd6c4;
+    --text: #201d16;
+    --text-dim: #6b6558;
+    --accent: #b8592e;
+    --accent-soft: #f0d9c8;
+    --mono-bg: #fbf9f3;
+
+    --cat-source: #2f7d6b;
+    --cat-source-bg: #dcefe9;
+    --cat-transform: #6b4fa0;
+    --cat-transform-bg: #e6ddf3;
+    --cat-filter: #b8862e;
+    --cat-filter-bg: #f3e8cf;
+    --cat-merge: #58524a;
+    --cat-merge-bg: #eae6db;
+    --cat-output: #a63b52;
+    --cat-output-bg: #f4dde1;
+    --cat-entry: #2b5f8a;
+    --cat-entry-bg: #dce8f0;
+    --cat-other: #857d6c;
+    --cat-other-bg: #eae6d9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14130f;
+      --surface: #1c1a15;
+      --surface-2: #24221b;
+      --border: #38352a;
+      --text: #ece7d9;
+      --text-dim: #a29c8a;
+      --accent: #e08a4f;
+      --accent-soft: #4a3222;
+      --mono-bg: #100f0c;
+
+      --cat-source: #5fbfa3;
+      --cat-source-bg: #1c3831;
+      --cat-transform: #b09be0;
+      --cat-transform-bg: #332a4d;
+      --cat-filter: #e0b45f;
+      --cat-filter-bg: #443619;
+      --cat-merge: #b8b0a0;
+      --cat-merge-bg: #35322a;
+      --cat-output: #e08a99;
+      --cat-output-bg: #452229;
+      --cat-entry: #7fb0d9;
+      --cat-entry-bg: #1f3446;
+      --cat-other: #ada58e;
+      --cat-other-bg: #2e2c22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14130f;
+    --surface: #1c1a15;
+    --surface-2: #24221b;
+    --border: #38352a;
+    --text: #ece7d9;
+    --text-dim: #a29c8a;
+    --accent: #e08a4f;
+    --accent-soft: #4a3222;
+    --mono-bg: #100f0c;
+
+    --cat-source: #5fbfa3;
+    --cat-source-bg: #1c3831;
+    --cat-transform: #b09be0;
+    --cat-transform-bg: #332a4d;
+    --cat-filter: #e0b45f;
+    --cat-filter-bg: #443619;
+    --cat-merge: #b8b0a0;
+    --cat-merge-bg: #35322a;
+    --cat-output: #e08a99;
+    --cat-output-bg: #452229;
+    --cat-entry: #7fb0d9;
+    --cat-entry-bg: #1f3446;
+    --cat-other: #ada58e;
+    --cat-other-bg: #2e2c22;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "IBM Plex Sans", -apple-system, sans-serif;
+  }
+  h1, h2, h3 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  header .brand { display: flex; align-items: baseline; gap: 10px; }
+  header h1 { font-size: 20px; font-weight: 600; color: var(--text); }
+  header .tag {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent); font-family: "IBM Plex Mono", monospace;
+  }
+  .drop-zone {
+    flex: 1;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .drop-zone input { display: none; }
+  .drop-zone svg { flex-shrink: 0; }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 22px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab .kind {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+  }
+  .tab .close { color: var(--text-dim); opacity: 0.5; padding: 0 2px; }
+  .tab .close:hover { opacity: 1; color: var(--accent); }
+
+  .body-area { flex: 1; display: flex; min-height: 0; }
+
+  .empty-state {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; color: var(--text-dim);
+    padding: 40px;
+  }
+  .empty-state h2 { font-size: 26px; color: var(--text); font-weight: 500; }
+  .empty-state p { max-width: 440px; text-align: center; font-size: 13.5px; }
+  .empty-state .legend {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px;
+  }
+  .legend-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--text-dim);
+  }
+  .legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+
+  .canvas-wrap {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 22px 22px;
+    cursor: grab;
+  }
+  .canvas-wrap:active { cursor: grabbing; }
+  .canvas {
+    position: relative;
+    transform-origin: 0 0;
+  }
+  .node {
+    position: absolute;
+    width: 176px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    padding: 9px 11px;
+    cursor: grab;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    transition: box-shadow 0.12s, border-color 0.12s;
+    user-select: none;
+  }
+  .node:active { cursor: grabbing; }
+  .node:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); transform: translateY(-1px); }
+  .node.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .node .cat-pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.02em;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+  }
+  .node .step-name {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .node .step-type {
+    font-size: 10.5px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace;
+    margin-top: 2px;
+  }
+
+  svg.edges { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+  svg.edges path { fill: none; stroke: var(--text-dim); stroke-width: 1.5; opacity: 0.55; }
+  svg.edges path.cond-false { stroke: var(--cat-output); stroke-dasharray: 4 3; }
+  svg.edges path.cond-true { stroke: var(--cat-source); }
+  svg.edges marker path { fill: var(--text-dim); }
+
+  .zoom-controls {
+    position: absolute; bottom: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  }
+  .zoom-controls button {
+    width: 30px; height: 30px; border: none; background: transparent; color: var(--text);
+    font-size: 15px; cursor: pointer; border-radius: 5px; font-family: inherit;
+  }
+  .zoom-controls button:hover { background: var(--surface-2); }
+
+  .detail-panel {
+    width: 340px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    overflow-y: auto;
+    padding: 18px;
+    display: none;
+  }
+  .detail-panel.open { display: block; }
+  .detail-panel .dp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+  .detail-panel h3 { font-size: 16px; font-weight: 600; }
+  .detail-panel .dp-close { cursor: pointer; color: var(--text-dim); font-size: 18px; line-height: 1; padding: 2px; }
+  .detail-panel .dp-close:hover { color: var(--accent); }
+  .detail-panel .cat-pill { margin: 6px 0 16px; }
+  .detail-panel .kv-list { display: flex; flex-direction: column; gap: 9px; }
+  .detail-panel .kv-row { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .detail-panel .kv-key {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-dim); margin-bottom: 3px;
+  }
+  .detail-panel .kv-val {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    background: var(--mono-bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 6px 8px; white-space: pre-wrap; word-break: break-word;
+    max-height: 160px; overflow-y: auto;
+  }
+  .detail-panel .kv-val.empty { color: var(--text-dim); font-style: italic; }
+  .detail-panel .sub-list { padding-left: 8px; border-left: 2px solid var(--border); }
+  .detail-panel .sub-item { margin: 6px 0; font-size: 11.5px; }
+  .detail-panel .sub-item .sk { color: var(--text-dim); }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .params-btn {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-dim);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .params-btn:hover { color: var(--text); background: var(--surface-2); }
+  .params-btn .count {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    background: var(--accent-soft); color: var(--accent);
+    padding: 0 6px; border-radius: 8px;
+  }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    width: min(680px, 90vw); max-height: 78vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  .modal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .modal-head h3 { font-size: 18px; font-weight: 600; }
+  .modal-head .dp-close { cursor: pointer; color: var(--text-dim); font-size: 20px; }
+  .modal-head .dp-close:hover { color: var(--accent); }
+  .modal p.hint { color: var(--text-dim); font-size: 12.5px; margin: 4px 0 16px; }
+  table.param-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.param-table th {
+    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-dim); padding: 6px 8px; border-bottom: 1px solid var(--border);
+  }
+  table.param-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.param-table .p-name { font-family: "IBM Plex Mono", monospace; color: var(--accent); white-space: nowrap; }
+  table.param-table .p-val { font-family: "IBM Plex Mono", monospace; word-break: break-all; }
+  table.param-table .p-desc { color: var(--text-dim); }
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Kettle Flow Viewer</h1>
+      <span class="tag">v0.1 · pentaho migration</span>
+    </div>
+    <label class="drop-zone" id="dropZone">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>拖放 .ktr / .kjb 到此處，或點擊選取檔案（支援多檔）</span>
+      <input type="file" id="fileInput" accept=".ktr,.kjb,.xml" multiple />
+    </label>
+  </header>
+
+  <div class="tabs-row" id="tabsRow" hidden style="display:flex;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);">
+    <div class="tabs" id="tabs" style="border-bottom:none;flex:1;"></div>
+    <div class="params-btn" id="paramsBtn" hidden>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>參數對照表</span>
+      <span class="count" id="paramsCount"></span>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="paramsModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>參數對照表</h3>
+        <span class="dp-close" id="paramsClose">×</span>
+      </div>
+      <p class="hint">這份檔案開頭 <code>&lt;parameters&gt;</code> 區塊定義的名稱→預設值——節點屬性裡的 <code>${名稱}</code> 就是被這張表解析出來的（除非上層呼叫時另外覆寫）。</p>
+      <table class="param-table">
+        <thead><tr><th>名稱</th><th>預設值</th><th>說明</th></tr></thead>
+        <tbody id="paramsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="body-area">
+    <div class="empty-state" id="emptyState">
+      <h2>還沒有載入任何檔案</h2>
+      <p>上傳 Pentaho Kettle 匯出的 <code>.ktr</code>（Transformation）或 <code>.kjb</code>（Job）檔案，純前端解析——檔案不會離開這個瀏覽器分頁，也不會上傳到任何地方。</p>
+      <div class="legend">
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-source)"></span>來源 Source</span>
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-transform)"></span>轉換 Transform</span>
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-filter)"></span>過濾／排序 Filter/Sort</span>
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-merge)"></span>合併 Merge</span>
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-output)"></span>輸出 Output</span>
+        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-entry)"></span>Job Entry</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap" style="display:none;">
+      <div class="canvas" id="canvas"></div>
+      <div class="zoom-controls">
+        <button id="zoomIn" title="放大">+</button>
+        <button id="zoomOut" title="縮小">−</button>
+        <button id="zoomReset" title="重設">⟳</button>
+      </div>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="dp-head">
+        <h3 id="dpName"></h3>
+        <span class="dp-close" id="dpClose">×</span>
+      </div>
+      <span class="cat-pill" id="dpCatPill"></span>
+      <div class="kv-list" id="dpBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- category classification ----------
+  var CATS = {
+    source: { label: "Source", color: "--cat-source", bg: "--cat-source-bg",
+      types: ["TableInput","TextFileInput","CsvInput","GetXMLData","JsonInput","ExcelInput","MongoDbInput"] },
+    transform: { label: "Transform", color: "--cat-transform", bg: "--cat-transform-bg",
+      types: ["SelectValues","ScriptValueMod","Calculator","ValueMapper","StreamLookup","DatabaseLookup",
+              "MemoryGroupBy","GroupBy","MergeJoin","JoinRows","Denormaliser","RowNormaliser","AddSequence",
+              "Formula","StringOperations","JavaScriptMod"] },
+    filter: { label: "Filter/Sort", color: "--cat-filter", bg: "--cat-filter-bg",
+      types: ["FilterRows","SortRows","RowsFromResult","UniqueRows","Sample"] },
+    merge: { label: "Merge", color: "--cat-merge", bg: "--cat-merge-bg", types: ["Dummy","DummyTrans","MergeRows"] },
+    output: { label: "Output", color: "--cat-output", bg: "--cat-output-bg",
+      types: ["TableOutput","TextFileOutput","XMLOutput","JsonOutput","ExcelOutput","InsertUpdate","Update","Delete"] },
+    entry: { label: "Job Entry", color: "--cat-entry", bg: "--cat-entry-bg",
+      types: ["TRANS","JOB","SHELL","SQL","MAIL","SPECIAL","FILE_EXISTS","EVAL","START"] }
+  };
+  function classify(type) {
+    for (var key in CATS) {
+      if (CATS[key].types.indexOf(type) !== -1) return key;
+    }
+    return "other";
+  }
+  function catMeta(key) {
+    if (key === "other") return { label: "Other", color: "--cat-other", bg: "--cat-other-bg" };
+    return CATS[key];
+  }
+
+  // ---------- xml helpers ----------
+  function txt(el, tag) {
+    if (!el) return null;
+    var found = null;
+    for (var i = 0; i < el.children.length; i++) {
+      if (el.children[i].tagName === tag) { found = el.children[i]; break; }
+    }
+    if (!found) return null;
+    var t = found.textContent;
+    return (t && t.trim().length) ? t : null;
+  }
+  function children(el, tag) {
+    var out = [];
+    if (!el) return out;
+    for (var i = 0; i < el.children.length; i++) {
+      if (el.children[i].tagName === tag) out.push(el.children[i]);
+    }
+    return out;
+  }
+
+  // simple leaf-only serializer for the detail panel: returns {simple:[[k,v]], nested:[[tag, [items]]]}
+  function summarizeNode(el) {
+    var simple = [], nested = [];
+    var seenNested = {};
+    for (var i = 0; i < el.children.length; i++) {
+      var c = el.children[i];
+      var hasElementChildren = false;
+      for (var j = 0; j < c.children.length; j++) { hasElementChildren = true; break; }
+      if (hasElementChildren) {
+        if (!seenNested[c.tagName]) {
+          seenNested[c.tagName] = true;
+          var group = children(el, c.tagName);
+          var items = group.map(function(g){
+            var line = [];
+            for (var k = 0; k < g.children.length; k++) {
+              var gc = g.children[k];
+              var v = gc.textContent && gc.textContent.trim();
+              if (v) line.push(gc.tagName + "=" + v);
+            }
+            return line.length ? line.join(", ") : (g.textContent || "").trim();
+          }).filter(function(s){ return s && s.length; });
+          if (items.length) nested.push([c.tagName, items]);
+        }
+      } else {
+        var val = c.textContent ? c.textContent.trim() : "";
+        if (val) simple.push([c.tagName, val]);
+      }
+    }
+    return { simple: simple, nested: nested };
+  }
+
+  // ---------- parsing ----------
+  // Pentaho's Spoon canvas draws each step as a small icon+label, so its native xloc/yloc
+  // spacing can be as tight as ~16px between neighbours. Our cards need to show category/
+  // name/type, so we scale the raw coordinates up to preserve the *relative* layout (same
+  // rows/columns, same up-down-left-right relationships) and then run a collision pass
+  // (see resolveCollisions) to nudge apart only the handful of pairs that would still overlap.
+  var ORIG_PAD_X = 40, ORIG_PAD_Y = 30, ORIG_SCALE = 2.2;
+
+  function readOrigPos(container) {
+    // .ktr steps nest xloc/yloc inside <GUI>; .kjb entries have them as flat children.
+    var gui = children(container, "GUI")[0];
+    var src = gui || container;
+    var x = txt(src, "xloc"), y = txt(src, "yloc");
+    if (x === null || y === null) return null;
+    return { x: parseInt(x, 10) * ORIG_SCALE + ORIG_PAD_X, y: parseInt(y, 10) * ORIG_SCALE + ORIG_PAD_Y };
+  }
+
+  // Job/Transformation-level <parameters><parameter><name>/<default_value>/<description></parameter>
+  // — this is what Kettle substitutes ${name} references with at runtime (unless the caller
+  // overrides it), so it's the answer to "what does ${X} actually point to".
+  function readParameters(paramsEl) {
+    return children(paramsEl, "parameter").map(function(p){
+      return { name: txt(p, "name") || "", default_value: txt(p, "default_value") || "", description: txt(p, "description") || "" };
+    }).filter(function(p){ return p.name; });
+  }
+
+  // Resolves every ${name} occurrence in a string using the file's own parameter table.
+  // Returns null when the string has no ${...} references (nothing to add).
+  function resolveVars(str, params) {
+    if (!str || str.indexOf("${") === -1) return null;
+    var map = {};
+    params.forEach(function(p){ map[p.name] = p.default_value; });
+    var resolved = str.replace(/\$\{([^}]+)\}/g, function(full, name){
+      return Object.prototype.hasOwnProperty.call(map, name) ? map[name] : full;
+    });
+    return resolved !== str ? resolved : null;
+  }
+
+  function parseKtr(doc, fileName) {
+    var root = doc.documentElement;
+    var info = root.querySelector(":scope > info");
+    var name = (info && txt(info, "name")) || fileName;
+    var paramsEl = info && children(info, "parameters")[0];
+    var parameters = paramsEl ? readParameters(paramsEl) : [];
+    var steps = children(root, "step").map(function(s){
+      var type = txt(s, "type") || "?";
+      return { id: txt(s, "name") || "(unnamed)", type: type, cat: classify(type), el: s, origPos: readOrigPos(s) };
+    });
+    var order = root.querySelector(":scope > order");
+    var hops = children(order, "hop").map(function(h){
+      return { from: txt(h, "from"), to: txt(h, "to"), enabled: txt(h, "enabled") !== "N" };
+    });
+    return { kind: "ktr", name: name, nodes: steps, edges: hops, parameters: parameters };
+  }
+
+  function parseKjb(doc, fileName) {
+    var root = doc.documentElement;
+    var name = txt(root, "name") || fileName;
+    var paramsEl = children(root, "parameters")[0];
+    var parameters = paramsEl ? readParameters(paramsEl) : [];
+    var entries = children(root, "entries")[0];
+    var steps = children(entries, "entry").map(function(e){
+      var type = txt(e, "type") || "?";
+      return { id: txt(e, "name") || "(unnamed)", type: type, cat: classify(type), el: e, origPos: readOrigPos(e) };
+    });
+    var hopsRoot = children(root, "hops")[0];
+    var hops = children(hopsRoot, "hop").map(function(h){
+      return {
+        from: txt(h, "from"), to: txt(h, "to"),
+        enabled: txt(h, "enabled") !== "N",
+        evaluation: txt(h, "evaluation"),
+        unconditional: txt(h, "unconditional")
+      };
+    });
+    return { kind: "kjb", name: name, nodes: steps, edges: hops, parameters: parameters };
+  }
+
+  function parseFile(text, fileName) {
+    var doc = new DOMParser().parseFromString(text, "text/xml");
+    var errNode = doc.querySelector("parsererror");
+    if (errNode) throw new Error("XML 解析失敗：" + errNode.textContent.slice(0, 200));
+    var rootTag = doc.documentElement.tagName;
+    if (rootTag === "transformation") return parseKtr(doc, fileName);
+    if (rootTag === "job") return parseKjb(doc, fileName);
+    throw new Error("不是可辨識的 Kettle 檔案（根節點是 <" + rootTag + ">，預期 <transformation> 或 <job>）");
+  }
+
+  // ---------- layout ----------
+  // Primary mode: use the coordinates Pentaho itself saved (<GUI><xloc>/<yloc></GUI> in .ktr,
+  // flat <xloc>/<yloc> in .kjb) so the diagram mirrors Spoon's canvas 1:1. Nodes with no saved
+  // coordinate (shouldn't normally happen, but some Kettle exports omit <GUI> on odd steps)
+  // fall back to a longest-path auto layout, placed below the restored diagram.
+  var NODE_W = 176, NODE_H = 52;
+
+  function autoLayoutFor(nodes, edges, startY) {
+    var byId = {};
+    nodes.forEach(function(n){ byId[n.id] = n; });
+    var indeg = {}, adj = {};
+    nodes.forEach(function(n){ indeg[n.id] = 0; adj[n.id] = []; });
+    edges.forEach(function(e){
+      if (!byId[e.from] || !byId[e.to]) return;
+      adj[e.from].push(e.to);
+      indeg[e.to] = (indeg[e.to] || 0) + 1;
+    });
+    var col = {};
+    nodes.forEach(function(n){ col[n.id] = 0; });
+    var queue = nodes.filter(function(n){ return indeg[n.id] === 0; }).map(function(n){ return n.id; });
+    var visited = {}, guard = 0;
+    while (queue.length && guard < 5000) {
+      guard++;
+      var id = queue.shift();
+      if (visited[id]) continue;
+      (adj[id] || []).forEach(function(to){
+        if (col[to] < col[id] + 1) col[to] = col[id] + 1;
+        queue.push(to);
+      });
+      visited[id] = true;
+    }
+    var columns = {};
+    nodes.forEach(function(n){ var c = col[n.id] || 0; (columns[c] = columns[c] || []).push(n); });
+    var colW = 232, rowH = 78;
+    var pos = {};
+    Object.keys(columns).map(Number).sort(function(a,b){return a-b;}).forEach(function(c){
+      columns[c].forEach(function(n, i){ pos[n.id] = { x: ORIG_PAD_X + c * colW, y: startY + i * rowH }; });
+    });
+    return pos;
+  }
+
+  // Pushes apart any pair of node boxes that still overlap after scaling, moving each by half
+  // the overlap along whichever axis needs the smaller nudge — keeps nodes close to their
+  // original relative position instead of yanking them into a generic grid.
+  function resolveCollisions(pos, ids) {
+    var GAP = 14;
+    for (var pass = 0; pass < 40; pass++) {
+      var anyOverlap = false;
+      for (var i = 0; i < ids.length; i++) {
+        for (var j = i + 1; j < ids.length; j++) {
+          var a = pos[ids[i]], b = pos[ids[j]];
+          if (!a || !b) continue;
+          var overlapX = (NODE_W + GAP) - Math.abs((a.x + NODE_W / 2) - (b.x + NODE_W / 2));
+          var overlapY = (NODE_H + GAP) - Math.abs((a.y + NODE_H / 2) - (b.y + NODE_H / 2));
+          if (overlapX > 0 && overlapY > 0) {
+            anyOverlap = true;
+            var push = Math.min(overlapX, overlapY) / 2 + 0.5;
+            if (overlapX < overlapY) {
+              var dir = (a.x <= b.x) ? -1 : 1;
+              a.x += dir * push; b.x -= dir * push;
+            } else {
+              var dirY = (a.y <= b.y) ? -1 : 1;
+              a.y += dirY * push; b.y -= dirY * push;
+            }
+          }
+        }
+      }
+      if (!anyOverlap) break;
+    }
+  }
+
+  function computeLayout(model) {
+    var pos = {}, missing = [];
+    model.nodes.forEach(function(n){
+      if (n.origPos) pos[n.id] = n.origPos; else missing.push(n);
+    });
+    resolveCollisions(pos, Object.keys(pos));
+    if (missing.length) {
+      var maxY = ORIG_PAD_Y;
+      Object.keys(pos).forEach(function(id){ maxY = Math.max(maxY, pos[id].y); });
+      var fallback = autoLayoutFor(missing, model.edges, maxY + NODE_H + 40);
+      Object.assign(pos, fallback);
+    }
+    var minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+    Object.keys(pos).forEach(function(id){
+      minX = Math.min(minX, pos[id].x); minY = Math.min(minY, pos[id].y);
+      maxX = Math.max(maxX, pos[id].x + NODE_W);
+      maxY = Math.max(maxY, pos[id].y + NODE_H);
+    });
+    // shift everything so the leftmost/topmost node sits at the padding, in case collision
+    // resolution pushed something into negative territory
+    var shiftX = ORIG_PAD_X - Math.min(minX, ORIG_PAD_X), shiftY = ORIG_PAD_Y - Math.min(minY, ORIG_PAD_Y);
+    if (shiftX || shiftY) {
+      Object.keys(pos).forEach(function(id){ pos[id].x += shiftX; pos[id].y += shiftY; });
+      maxX += shiftX; maxY += shiftY;
+    }
+    return { pos: pos, width: maxX + ORIG_PAD_X, height: maxY + ORIG_PAD_Y };
+  }
+
+  // ---------- rendering ----------
+  var state = { files: [], activeIdx: -1, zoom: 1, selectedNode: null };
+
+  var tabsEl = document.getElementById("tabs");
+  var tabsRowEl = document.getElementById("tabsRow");
+  var emptyEl = document.getElementById("emptyState");
+  var canvasWrapEl = document.getElementById("canvasWrap");
+  var canvasEl = document.getElementById("canvas");
+  var detailEl = document.getElementById("detailPanel");
+  var paramsBtnEl = document.getElementById("paramsBtn");
+  var paramsCountEl = document.getElementById("paramsCount");
+
+  function renderTabs() {
+    tabsEl.innerHTML = "";
+    tabsRowEl.hidden = state.files.length === 0;
+    var active = state.files[state.activeIdx];
+    var paramCount = active ? (active.model.parameters || []).length : 0;
+    paramsBtnEl.hidden = paramCount === 0;
+    paramsCountEl.textContent = paramCount;
+    state.files.forEach(function(f, i){
+      var tab = document.createElement("div");
+      tab.className = "tab" + (i === state.activeIdx ? " active" : "");
+      var kindLabel = f.model.kind.toUpperCase();
+      tab.innerHTML = '<span>' + escapeHtml(f.model.name) + '</span><span class="kind">' + kindLabel + '</span><span class="close">×</span>';
+      tab.addEventListener("click", function(ev){
+        if (ev.target.classList.contains("close")) {
+          state.files.splice(i, 1);
+          if (state.activeIdx >= state.files.length) state.activeIdx = state.files.length - 1;
+          renderAll();
+          return;
+        }
+        state.activeIdx = i;
+        state.selectedNode = null;
+        renderAll();
+      });
+      tabsEl.appendChild(tab);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  function ensureLayout(active) {
+    if (!active.pos) {
+      var lay = computeLayout(active.model);
+      active.pos = lay.pos;
+    }
+    return active.pos;
+  }
+
+  function recomputeBounds(active) {
+    var maxX = 0, maxY = 0;
+    Object.keys(active.pos).forEach(function(id){
+      maxX = Math.max(maxX, active.pos[id].x + NODE_W);
+      maxY = Math.max(maxY, active.pos[id].y + NODE_H);
+    });
+    active.width = maxX + ORIG_PAD_X;
+    active.height = maxY + ORIG_PAD_Y;
+  }
+
+  var drag = null; // { kind: "node"|"pan", ... }
+
+  function renderCanvas() {
+    var active = state.files[state.activeIdx];
+    if (!active) {
+      emptyEl.style.display = "flex";
+      canvasWrapEl.style.display = "none";
+      detailEl.classList.remove("open");
+      return;
+    }
+    emptyEl.style.display = "none";
+    canvasWrapEl.style.display = "block";
+
+    var model = active.model;
+    var pos = ensureLayout(active);
+    if (!active.width) recomputeBounds(active);
+    canvasEl.style.width = active.width + "px";
+    canvasEl.style.height = active.height + "px";
+    canvasEl.style.transform = "scale(" + state.zoom + ")";
+    canvasEl.innerHTML = "";
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "edges");
+    svg.setAttribute("width", active.width);
+    svg.setAttribute("height", active.height);
+
+    model.edges.forEach(function(e){
+      var p1 = pos[e.from], p2 = pos[e.to];
+      if (!p1 || !p2) return;
+      var x1 = p1.x + NODE_W, y1 = p1.y + NODE_H / 2;
+      var x2 = p2.x, y2 = p2.y + NODE_H / 2;
+      var mx = (x1 + x2) / 2;
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M " + x1 + " " + y1 + " C " + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2);
+      if (e.enabled === false) path.setAttribute("opacity", "0.25");
+      else if (e.unconditional === "N" && e.evaluation === "Y") path.setAttribute("class", "cond-true");
+      svg.appendChild(path);
+    });
+    canvasEl.appendChild(svg);
+
+    model.nodes.forEach(function(n){
+      var p = pos[n.id];
+      if (!p) return;
+      var meta = catMeta(n.cat);
+      var div = document.createElement("div");
+      div.className = "node" + (state.selectedNode === n ? " selected" : "");
+      div.style.left = p.x + "px";
+      div.style.top = p.y + "px";
+      div.innerHTML =
+        '<span class="cat-pill" style="color:var(' + meta.color + ');background:var(' + meta.bg + ')">' + meta.label + '</span>' +
+        '<div class="step-name" title="' + escapeHtml(n.id) + '">' + escapeHtml(n.id) + '</div>' +
+        '<div class="step-type">' + escapeHtml(n.type) + '</div>';
+      div.addEventListener("mousedown", function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        drag = {
+          kind: "node", node: n, active: active,
+          startX: ev.clientX, startY: ev.clientY,
+          origX: pos[n.id].x, origY: pos[n.id].y,
+          moved: false
+        };
+      });
+      div.addEventListener("click", function(ev){
+        if (justDragged) return; // suppress the click that follows a real drag-and-release
+        state.selectedNode = n;
+        renderCanvas();
+        renderDetail();
+      });
+      canvasEl.appendChild(div);
+    });
+  }
+
+  // node drag + background pan, both via a single document-level mouse tracker
+  document.addEventListener("mousemove", function(ev){
+    if (!drag) return;
+    var dx = ev.clientX - drag.startX, dy = ev.clientY - drag.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+    if (drag.kind === "node") {
+      var pos = drag.active.pos;
+      pos[drag.node.id] = { x: drag.origX + dx / state.zoom, y: drag.origY + dy / state.zoom };
+      recomputeBounds(drag.active);
+      renderCanvas();
+    } else if (drag.kind === "pan") {
+      canvasWrapEl.scrollLeft = drag.origScrollLeft - dx;
+      canvasWrapEl.scrollTop = drag.origScrollTop - dy;
+    }
+  });
+  var justDragged = false;
+  document.addEventListener("mouseup", function(){
+    // No re-render here: every real move already re-rendered live in mousemove, and rebuilding
+    // the DOM again here would destroy the node element the browser is about to dispatch the
+    // native "click" event to, silently swallowing the click-to-select interaction.
+    if (drag && drag.kind === "node" && drag.moved) {
+      justDragged = true;
+      setTimeout(function(){ justDragged = false; }, 0); // clears after this click cycle finishes
+    }
+    drag = null;
+  });
+  canvasWrapEl.addEventListener("mousedown", function(ev){
+    if (ev.target !== canvasWrapEl && ev.target !== canvasEl) return; // let node handler own its own drag
+    drag = {
+      kind: "pan",
+      startX: ev.clientX, startY: ev.clientY,
+      origScrollLeft: canvasWrapEl.scrollLeft, origScrollTop: canvasWrapEl.scrollTop
+    };
+    canvasWrapEl.style.cursor = "grabbing";
+  });
+  document.addEventListener("mouseup", function(){ canvasWrapEl.style.cursor = ""; });
+
+  canvasWrapEl.addEventListener("wheel", function(ev){
+    if (!state.files[state.activeIdx]) return;
+    ev.preventDefault();
+    var rect = canvasWrapEl.getBoundingClientRect();
+    var beforeZoom = state.zoom;
+    var delta = ev.deltaY < 0 ? 0.1 : -0.1;
+    state.zoom = Math.min(2, Math.max(0.3, Math.round((state.zoom + delta) * 100) / 100));
+    var ratio = state.zoom / beforeZoom;
+    var cursorX = ev.clientX - rect.left, cursorY = ev.clientY - rect.top;
+    canvasEl.style.transform = "scale(" + state.zoom + ")";
+    canvasWrapEl.scrollLeft = (canvasWrapEl.scrollLeft + cursorX) * ratio - cursorX;
+    canvasWrapEl.scrollTop = (canvasWrapEl.scrollTop + cursorY) * ratio - cursorY;
+  }, { passive: false });
+
+  function renderDetail() {
+    var n = state.selectedNode;
+    if (!n) { detailEl.classList.remove("open"); return; }
+    detailEl.classList.add("open");
+    document.getElementById("dpName").textContent = n.id;
+    var meta = catMeta(n.cat);
+    var pill = document.getElementById("dpCatPill");
+    pill.textContent = meta.label + " · " + n.type;
+    pill.style.color = "var(" + meta.color + ")";
+    pill.style.background = "var(" + meta.bg + ")";
+
+    var summary = summarizeNode(n.el);
+    var body = document.getElementById("dpBody");
+    body.innerHTML = "";
+
+    if (!summary.simple.length && !summary.nested.length) {
+      body.innerHTML = '<div class="kv-val empty">這個節點沒有額外屬性</div>';
+      return;
+    }
+
+    var active = state.files[state.activeIdx];
+    var params = (active && active.model.parameters) || [];
+
+    summary.simple.forEach(function(pair){
+      var row = document.createElement("div");
+      row.className = "kv-row";
+      var resolved = resolveVars(pair[1], params);
+      var valHtml = '<div class="kv-val">' + escapeHtml(pair[1]) + '</div>';
+      if (resolved) {
+        valHtml += '<div class="kv-val" style="margin-top:5px;color:var(--accent);border-color:var(--accent)">→ ' + escapeHtml(resolved) + '</div>';
+      }
+      row.innerHTML = '<div class="kv-key">' + escapeHtml(pair[0]) + '</div>' + valHtml;
+      body.appendChild(row);
+    });
+    summary.nested.forEach(function(pair){
+      var row = document.createElement("div");
+      row.className = "kv-row";
+      var tag = pair[0], items = pair[1];
+      var html = '<div class="kv-key">' + escapeHtml(tag) + ' (' + items.length + ')</div><div class="sub-list">';
+      items.slice(0, 30).forEach(function(it){
+        html += '<div class="sub-item">' + escapeHtml(it) + '</div>';
+      });
+      if (items.length > 30) html += '<div class="sub-item sk">…還有 ' + (items.length - 30) + ' 筆</div>';
+      html += '</div>';
+      row.innerHTML = html;
+      body.appendChild(row);
+    });
+  }
+
+  function renderAll() { renderTabs(); renderCanvas(); renderDetail(); }
+
+  document.getElementById("dpClose").addEventListener("click", function(){
+    state.selectedNode = null;
+    renderCanvas();
+    renderDetail();
+  });
+  document.getElementById("zoomIn").addEventListener("click", function(){ state.zoom = Math.min(2, state.zoom + 0.1); renderCanvas(); });
+  document.getElementById("zoomOut").addEventListener("click", function(){ state.zoom = Math.max(0.3, state.zoom - 0.1); renderCanvas(); });
+  document.getElementById("zoomReset").addEventListener("click", function(){ state.zoom = 1; renderCanvas(); });
+
+  var paramsModalEl = document.getElementById("paramsModal");
+  paramsBtnEl.addEventListener("click", function(){
+    var active = state.files[state.activeIdx];
+    var params = (active && active.model.parameters) || [];
+    var tbody = document.getElementById("paramsBody");
+    tbody.innerHTML = params.map(function(p){
+      return '<tr><td class="p-name">${' + escapeHtml(p.name) + '}</td>' +
+        '<td class="p-val">' + escapeHtml(p.default_value || "(空)") + '</td>' +
+        '<td class="p-desc">' + escapeHtml(p.description || "—") + '</td></tr>';
+    }).join("");
+    paramsModalEl.classList.add("open");
+  });
+  document.getElementById("paramsClose").addEventListener("click", function(){ paramsModalEl.classList.remove("open"); });
+  paramsModalEl.addEventListener("click", function(ev){ if (ev.target === paramsModalEl) paramsModalEl.classList.remove("open"); });
+
+  // ---------- file loading ----------
+  function loadFiles(fileList) {
+    var arr = Array.prototype.slice.call(fileList);
+    var pending = arr.length;
+    if (!pending) return;
+    arr.forEach(function(file){
+      var reader = new FileReader();
+      reader.onload = function(){
+        try {
+          var model = parseFile(reader.result, file.name);
+          state.files.push({ model: model });
+          state.activeIdx = state.files.length - 1;
+        } catch (err) {
+          alert("解析失敗：" + file.name + "\n" + err.message);
+        } finally {
+          pending--;
+          if (pending === 0) renderAll();
+        }
+      };
+      reader.onerror = function(){
+        pending--;
+        alert("讀取檔案失敗：" + file.name);
+        if (pending === 0) renderAll();
+      };
+      reader.readAsText(file, "UTF-8");
+    });
+  }
+
+  var dropZone = document.getElementById("dropZone");
+  var fileInput = document.getElementById("fileInput");
+  fileInput.addEventListener("change", function(){ loadFiles(fileInput.files); fileInput.value = ""; });
+  ["dragenter","dragover"].forEach(function(ev){
+    dropZone.addEventListener(ev, function(e){ e.preventDefault(); dropZone.classList.add("dragover"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    dropZone.addEventListener(ev, function(e){ e.preventDefault(); dropZone.classList.remove("dragover"); });
+  });
+  dropZone.addEventListener("drop", function(e){
+    if (e.dataTransfer.files && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+  });
+
+  renderAll();
+})();
+</script>
