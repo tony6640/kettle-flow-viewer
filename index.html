@@ -162,20 +162,39 @@
   .body-area { flex: 1; display: flex; min-height: 0; }
 
   .empty-state {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 14px; color: var(--text-dim);
-    padding: 40px;
+    flex: 1; display: flex; flex-direction: column;
+    color: var(--text-dim); padding: 36px 40px 40px;
+    gap: 28px; min-height: 0;
   }
-  .empty-state h2 { font-size: 26px; color: var(--text); font-weight: 500; }
-  .empty-state p { max-width: 440px; text-align: center; font-size: 13.5px; }
+  .empty-state-intro { text-align: center; flex-shrink: 0; }
+  .empty-state h2 { font-size: 24px; color: var(--text); font-weight: 500; margin-bottom: 10px; }
+  .empty-state p { max-width: 460px; margin: 0 auto; text-align: center; font-size: 13.5px; }
   .empty-state .legend {
-    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px;
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px;
   }
   .legend-chip {
     display: flex; align-items: center; gap: 6px;
     font-size: 11.5px; color: var(--text-dim);
   }
   .legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+
+  .big-drop-zone {
+    flex: 1;
+    min-height: 260px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .big-drop-zone:hover, .big-drop-zone.dragover {
+    border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
+  }
+  .big-drop-zone input { display: none; }
+  .big-drop-zone .big-drop-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .big-drop-zone:hover .big-drop-title, .big-drop-zone.dragover .big-drop-title { color: var(--accent); }
+  .big-drop-zone .big-drop-sub { font-size: 12.5px; }
 
   .canvas-wrap {
     flex: 1;
@@ -376,16 +395,24 @@
 
   <div class="body-area">
     <div class="empty-state" id="emptyState">
-      <h2>還沒有載入任何檔案</h2>
-      <p>上傳 Pentaho Kettle 匯出的 <code>.ktr</code>（Transformation）或 <code>.kjb</code>（Job）檔案，純前端解析——檔案不會離開這個瀏覽器分頁，也不會上傳到任何地方。</p>
-      <div class="legend">
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-source)"></span>來源 Source</span>
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-transform)"></span>轉換 Transform</span>
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-filter)"></span>過濾／排序 Filter/Sort</span>
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-merge)"></span>合併 Merge</span>
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-output)"></span>輸出 Output</span>
-        <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-entry)"></span>Job Entry</span>
+      <div class="empty-state-intro">
+        <h2>還沒有載入任何檔案</h2>
+        <p>上傳 Pentaho Kettle 匯出的 <code>.ktr</code>（Transformation）或 <code>.kjb</code>（Job）檔案，純前端解析——檔案不會離開這個瀏覽器分頁，也不會上傳到任何地方。</p>
+        <div class="legend">
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-source)"></span>來源 Source</span>
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-transform)"></span>轉換 Transform</span>
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-filter)"></span>過濾／排序 Filter/Sort</span>
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-merge)"></span>合併 Merge</span>
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-output)"></span>輸出 Output</span>
+          <span class="legend-chip"><span class="legend-dot" style="background:var(--cat-entry)"></span>Job Entry</span>
+        </div>
       </div>
+      <label class="big-drop-zone" id="bigDropZone">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="big-drop-title">拖放檔案到這裡</span>
+        <span class="big-drop-sub">或點擊選取 .ktr / .kjb（支援多檔）</span>
+        <input type="file" id="fileInputBig" accept=".ktr,.kjb,.xml" multiple />
+      </label>
     </div>
 
     <div class="canvas-wrap" id="canvasWrap" style="display:none;">
@@ -994,18 +1021,20 @@
     });
   }
 
-  var dropZone = document.getElementById("dropZone");
-  var fileInput = document.getElementById("fileInput");
-  fileInput.addEventListener("change", function(){ loadFiles(fileInput.files); fileInput.value = ""; });
-  ["dragenter","dragover"].forEach(function(ev){
-    dropZone.addEventListener(ev, function(e){ e.preventDefault(); dropZone.classList.add("dragover"); });
-  });
-  ["dragleave","drop"].forEach(function(ev){
-    dropZone.addEventListener(ev, function(e){ e.preventDefault(); dropZone.classList.remove("dragover"); });
-  });
-  dropZone.addEventListener("drop", function(e){
-    if (e.dataTransfer.files && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
-  });
+  function wireDropZone(zoneEl, inputEl) {
+    inputEl.addEventListener("change", function(){ loadFiles(inputEl.files); inputEl.value = ""; });
+    ["dragenter","dragover"].forEach(function(ev){
+      zoneEl.addEventListener(ev, function(e){ e.preventDefault(); zoneEl.classList.add("dragover"); });
+    });
+    ["dragleave","drop"].forEach(function(ev){
+      zoneEl.addEventListener(ev, function(e){ e.preventDefault(); zoneEl.classList.remove("dragover"); });
+    });
+    zoneEl.addEventListener("drop", function(e){
+      if (e.dataTransfer.files && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+    });
+  }
+  wireDropZone(document.getElementById("dropZone"), document.getElementById("fileInput"));
+  wireDropZone(document.getElementById("bigDropZone"), document.getElementById("fileInputBig"));
 
   renderAll();
 })();
