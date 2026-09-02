@@ -124,7 +124,7 @@
   .tab .close { color: var(--text-dim); opacity: 0.5; padding: 0 2px; }
   .tab .close:hover { opacity: 1; color: var(--accent); }
 
-  .body-area { flex: 1; display: flex; min-height: 0; }
+  .body-area { flex: 1; display: flex; min-height: 0; min-width: 0; }
 
   .empty-state {
     flex: 1; display: flex; flex-direction: column;
@@ -166,11 +166,13 @@
     display: flex;
     position: relative;
     min-height: 0;
+    min-width: 0;
   }
   .canvas-wrap {
     flex: 1;
     overflow: auto;
     position: relative;
+    min-width: 0;
     background-image: radial-gradient(var(--border) 1px, transparent 1px);
     background-size: 22px 22px;
     cursor: grab;
